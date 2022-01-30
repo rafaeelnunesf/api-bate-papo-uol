@@ -63,6 +63,30 @@ app.get("/participants", async (req, res) => {
   }
 });
 
+app.post("/status", async (req, res) => {
+  try {
+    const participant = await db
+      .collection("participants")
+      .findOne({ name: req.headers.user });
+    if (!participant) {
+      res.sendStatus(404);
+      return;
+    }
+
+    await db
+      .collection("participants")
+      .updateOne(
+        { lastStatus: participant.lastStatus },
+        { $set: { lastStatus: Date.now() } }
+      );
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
+
 app.listen(5000, () => {
   console.log("servidor rodando na porta 5000...");
 });

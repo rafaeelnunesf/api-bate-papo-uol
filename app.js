@@ -130,6 +130,29 @@ app.post("/messages", async (req, res) => {
   }
 });
 
+app.get("/messages", async (req, res) => {
+  const user = await db
+    .collection("participants")
+    .findOne({ name: req.headers.user });
+  if (!user) {
+    res.sendStatus(409);
+    return;
+  }
+  try {
+    const messages = await db
+      .collection("messages")
+      .find({ to: { $in: ["Todos", req.headers.user] } })
+      .toArray();
+
+    const newMessages = messages.reverse().slice(0, req.query.limit);
+
+    res.send(newMessages);
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
+  }
+});
+
 app.listen(5000, () => {
   console.log("servidor rodando na porta 5000...");
 });

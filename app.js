@@ -37,18 +37,32 @@ app.post("/participants", async (req, res) => {
   }
   /////////////////////////////////// END VALIDATION ///////////////////////////////////
   participant.lastStatus = Date.now();
-
-  await db.collection("participants").insertOne(participant);
-  await db.collection("messages").insertOne({
-    from: participant.name,
-    to: "Todos",
-    text: "entra na sala...",
-    type: "status",
-    time: dayjs().format("HH:mm:ss"),
-  });
-
-  res.sendStatus(201);
+  try {
+    await db.collection("participants").insertOne(participant);
+    await db.collection("messages").insertOne({
+      from: participant.name,
+      to: "Todos",
+      text: "entra na sala...",
+      type: "status",
+      time: dayjs().format("HH:mm:ss"),
+    });
+    res.sendStatus(201);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
 });
+
+app.get("/participants", async (req, res) => {
+  try {
+    const participants = await db.collection("participants").find().toArray();
+    res.send(participants);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
+
 app.listen(5000, () => {
   console.log("servidor rodando na porta 5000...");
 });

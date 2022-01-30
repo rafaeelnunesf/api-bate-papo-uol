@@ -144,14 +144,35 @@ app.get("/messages", async (req, res) => {
       .find({ to: { $in: ["Todos", req.headers.user] } })
       .toArray();
 
-    const newMessages = messages.reverse().slice(0, req.query.limit);
+    const limitedMessages = messages.reverse().slice(0, req.query.limit);
 
-    res.send(newMessages);
+    res.send(limitedMessages);
   } catch (err) {
     console.log(err);
     res.sendStatus(500);
   }
 });
+
+setInterval(async () => {
+  const participants = await db
+    .collection("participants")
+    .find({ lastStatus: { $lt: Date.now() - 10000 } })
+    .toArray();
+
+  await db
+    .collection("participants")
+    .deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
+
+  participants.map(async (user) => {
+    await db.collection("messages").insertOne({
+      from: user.name,
+      to: "Todos",
+      text: "sai da sala...",
+      type: "status",
+      time: dayjs().format("HH:mm:ss"),
+    });
+  });
+}, 15000);
 
 app.listen(5000, () => {
   console.log("servidor rodando na porta 5000...");

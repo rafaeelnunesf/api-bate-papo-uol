@@ -16,8 +16,15 @@ mongoClient.connect().then(() => {
   db = mongoClient.db("API-UOL");
 });
 
+const userSchema = joi.string().required();
 const participantSchema = joi.object({
   name: joi.string().required(),
+});
+
+const messagesSchema = joi.object({
+  to: joi.string().required(),
+  text: joi.string().required(),
+  type: joi.string().valid("message", "private_message").required(),
 });
 
 app.post("/participants", async (req, res) => {
@@ -83,6 +90,42 @@ app.post("/status", async (req, res) => {
     res.sendStatus(200);
   } catch (error) {
     console.error(error);
+    res.sendStatus(500);
+  }
+});
+
+app.post("/messages", async (req, res) => {
+  /////////////////////////////////// START VALIDATION ///////////////////////////////////
+  const messageValidation = messagesSchema.validate(req.body, {
+    abortEarly: true,
+  });
+  const userValidation = userSchema.validate(req.headers.user, {
+    abortEarly: true,
+  });
+  if (messageValidation.error) {
+    return res.status(422).send(messageValidation.error.details);
+  } else if (userValidation.error) {
+    return res.status(422).send(userValidation.error.details);
+  }
+  const user = await db
+    .collection("participants")
+    .findOne({ name: req.headers.user });
+  if (!user) {
+    res.sendStatus(409);
+    return;
+  }
+  /////////////////////////////////// END VALIDATION ///////////////////////////////////
+  try {
+    await db.collection("messages").insertOne({
+      from: req.headers.user,
+      to: req.body.to,
+      text: req.body.text,
+      type: req.body.type,
+      time: dayjs().format("HH:mm:ss"),
+    });
+    res.sendStatus(201);
+  } catch (err) {
+    console.error(err);
     res.sendStatus(500);
   }
 });

@@ -175,6 +175,47 @@ app.delete("/messages/:idMessage", async (req, res) => {
   }
 });
 
+app.put("/messages/:idMessage", async (req, res) => {
+  const { idMessage } = req.params;
+  const messageValidation = messagesSchema.validate(req.body, {
+    abortEarly: true,
+  });
+
+  if (messageValidation.error) {
+    return res.status(422).send(messageValidation.error.details);
+  }
+
+  try {
+    const message = await db
+      .collection("messages")
+      .findOne({ _id: new ObjectId(idMessage) });
+    if (!message) {
+      res.sendStatus(404);
+      return;
+    } else if (message.from !== req.headers.user) {
+      res.sendStatus(401);
+      return;
+    }
+
+    await db.collection("messages").updateOne(
+      { _id: new ObjectId(idMessage) },
+      {
+        $set: {
+          from: req.headers.user,
+          to: req.body.to,
+          text: req.body.text,
+          type: req.body.type,
+          time: dayjs().format("HH:mm:ss"),
+        },
+      }
+    );
+    res.sendStatus(201);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
+
 setInterval(async () => {
   const participants = await db
     .collection("participants")

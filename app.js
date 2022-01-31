@@ -1,7 +1,7 @@
 import express, { json } from "express";
 import cors from "cors";
 import joi from "joi";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dayjs from "dayjs";
 import dotenv from "dotenv";
 dotenv.config();
@@ -147,6 +147,28 @@ app.get("/messages", async (req, res) => {
     const limitedMessages = messages.reverse().slice(0, req.query.limit);
 
     res.send(limitedMessages);
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
+  }
+});
+
+app.delete("/messages/:idMessage", async (req, res) => {
+  const { idMessage } = req.params;
+  const user = req.headers.user;
+  try {
+    const message = await db
+      .collection("messages")
+      .findOne({ _id: new ObjectId(idMessage) });
+    if (!message) {
+      res.sendStatus(404);
+      return;
+    } else if (message.from !== user) {
+      res.sendStatus(401);
+      return;
+    }
+    await db.collection("messages").deleteOne({ _id: new ObjectId(idMessage) });
+    res.sendStatus(200);
   } catch (err) {
     console.log(err);
     res.sendStatus(500);

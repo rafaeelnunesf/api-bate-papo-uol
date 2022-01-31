@@ -144,8 +144,7 @@ app.get("/messages", async (req, res) => {
       .find({ to: { $in: ["Todos", req.headers.user] } })
       .toArray();
 
-    const limitedMessages = messages.reverse().slice(0, req.query.limit);
-
+    const limitedMessages = messages.slice(-req.query.limit);
     res.send(limitedMessages);
   } catch (err) {
     console.log(err);
